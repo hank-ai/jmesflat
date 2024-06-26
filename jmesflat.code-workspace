@@ -1,0 +1,40 @@
+{
+  "folders": [
+    {
+      "path": "."
+    }
+  ],
+  "settings": {
+    "files.insertFinalNewline": true,
+    "files.trimFinalNewlines": true,
+    "files.trimTrailingWhitespace": true,
+    "notebook.output.textLineLimit": 5000,
+    "jupyter.debugJustMyCode": true,
+    "editor.formatOnSave": true,
+    "editor.formatOnSaveMode": "file",
+    "python.languageServer": "Pylance",
+    "black-formatter.args": ["-l", "99"],
+    "python.testing.pytestEnabled": true,
+    "python.testing.pytestArgs": ["--rootdir", "${workspaceFolder}/tests"],
+    "mypy-type-checker.args": [
+      "--check-untyped-defs",
+      "--ignore-missing-imports",
+      "--implicit-optional"
+    ],
+    "mypy-type-checker.ignorePatterns": ["scripts/*"],
+    "pylint.args": [
+      "--generated-members=numpy.*,pdftotext.*,cv2.*",
+      "--disable=W0311,R0903"
+    ],
+    "pylint.ignorePatterns": [
+      "**/site-packages/**/*.py",
+      "./.vscode/*.py",
+      "**/tests/**",
+      "**/scripts/**"
+    ],
+    "jupyter.interactiveWindow.textEditor.autoAddNewCell": false,
+    "isort.check": false,
+    "mypy-type-checker.reportingScope": "file",
+    "mypy-type-checker.preferDaemon": false
+  }
+}

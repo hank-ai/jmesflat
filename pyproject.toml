@@ -1,0 +1,25 @@
+[build-system]
+requires = ["flit_core>=3.4,<4"]
+build-backend = "flit_core.buildapi"
+
+[project]
+name = "jmesflat"
+authors = [{ name = "Sam Hartzog", email = "sam.hartzog@hank.ai" }]
+dynamic = ["version", "description"]
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: MIT License",
+    "File Formats :: JSON",
+    "",
+]
+dependencies = ["jmespath"]
+
+[project.urls]
+Home = "https://github.com/hank-ai/jmesflat"
+Issues = "https://github.com/hank-ai/jmesflat/issues"
