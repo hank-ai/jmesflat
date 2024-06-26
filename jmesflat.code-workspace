@@ -21,7 +21,7 @@
       "--ignore-missing-imports",
       "--implicit-optional"
     ],
-    "mypy-type-checker.ignorePatterns": ["scripts/*"],
+    "mypy-type-checker.ignorePatterns": ["scripts/*", "testbench.py"],
     "pylint.args": [
       "--generated-members=numpy.*,pdftotext.*,cv2.*",
       "--disable=W0311,R0903"
@@ -30,7 +30,8 @@
       "**/site-packages/**/*.py",
       "./.vscode/*.py",
       "**/tests/**",
-      "**/scripts/**"
+      "**/scripts/**",
+      "**/testbench.py"
     ],
     "jupyter.interactiveWindow.textEditor.autoAddNewCell": false,
     "isort.check": false,
