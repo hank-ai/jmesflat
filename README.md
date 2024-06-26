@@ -34,7 +34,7 @@ Common use cases:
 
 ## Compatibility
 
-Python 3.10 or greater
+Python 3.9 or greater
 
 ## Basic Features Demo
 
