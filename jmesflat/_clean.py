@@ -1,6 +1,6 @@
 "Implement the `clean` function"
 
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Optional
 
 from . import constants
 from ._flatten import flatten
@@ -8,9 +8,9 @@ from ._unflatten import unflatten
 
 
 def clean(
-    nested: Union[dict[str, Any], list[Any]],
+    nested: constants.T_TOP,
     discard_check: Optional[Callable[[str, Any], bool]] = None,
-) -> Union[dict[str, Any], list[Any]]:
+) -> constants.T_TOP:
     """
     Apply `discard_check` to all atomic values in nested and remove entries
     for which `discard_check` returns True.
@@ -27,4 +27,6 @@ def clean(
     """
 
     discard_check = discard_check or constants.DISCARD_CHECK
-    return unflatten(flatten(nested, discard_check=discard_check))
+    cleaned = unflatten(flatten(nested, discard_check=discard_check))
+    assert isinstance(cleaned, type(nested))
+    return cleaned
