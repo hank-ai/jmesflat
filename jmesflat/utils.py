@@ -7,19 +7,19 @@ from . import constants
 
 def jpquery_from_flat_key(flat_key: str, strict: bool = True) -> str:
     """
-    Add escape quotes around path elements that contain `@` or `-`.
-
-    Example:
-        jmespath_query = jpquery_from_flat_key('foo-bar.baz[2].test.@type')
-        # jmespath_query == '"foo-bar".baz[2].test."@type"'.
+    Add escape quotes around path elements containing reserved chars or spaces.
 
     Args:
         flat_key (str): flattened json key
-        strict (bool, optional): if True, raise ValueError if an array index is a "*".
+        strict (bool, optional): if True, raise ValueError "[*]" array refs. \
             Default is True.
 
     Returns:
         str: properly escaped jmespath query string
+
+    Example:
+        >>> jpquery_from_flat_key('foo-bar.baz[2].test.@type')
+        '"foo-bar".baz[2].test."@type"'
     """
     return escaped_query_from_path_elements(
         raw_jpquery_path_elements(flat_key),
@@ -27,10 +27,20 @@ def jpquery_from_flat_key(flat_key: str, strict: bool = True) -> str:
     )
 
 
-def raw_jpquery_path_elements(flat_key: str) -> list[str]:
+def raw_jpquery_path_elements(flat_key: str) -> list[str | int]:
     """
-    Split a flat key into a list of path elements that can be used
-    to construct a jmespath query.
+    Split a flat key into a list of path elements.
+
+    Args:
+        flat_key (str): The flat key string to be split.
+
+    Returns:
+        list[str | int]: A list of path elements extracted from the flat key. \
+            Output contains strs for key references and ints for array indices.
+
+    Example:
+        >>> raw_jpquery_path_elements("foo[0].bar[1].baz")
+        ['foo', 0, 'bar', 1, 'baz']
     """
     return [
         int(sub_e[1]) if sub_e[0] == "[" and sub_e[1].isnumeric() else sub_e[1]
@@ -41,8 +51,7 @@ def raw_jpquery_path_elements(flat_key: str) -> list[str]:
 
 def _escaped_key(key: str) -> str:
     """
-    Escape path elements containing a character from `constants.ESCAPED_CHARS`
-    with double quotes to prevent jmespath exceptions.
+    Escape path elements containing reserved chars or spaces.
 
     Args:
         key (str): key to escape
@@ -61,7 +70,7 @@ def escaped_query_from_path_elements(
     elements: Sequence[Union[str, int]], prefix: str = "", strict: bool = True
 ) -> str:
     """
-    Escape each key containing a dash or @ symbol with double quotes to
+    Escape each key containing reserved chars or spaces with double quotes to
     prevent jmespath from interpreting them as operators.
 
     Args:
