@@ -1,6 +1,6 @@
 """Initialize jmesflat package"""
 
-__version__ = "0.0.2"
+__version__ = "0.0.3"
 
 from . import constants, utils
 from ._clean import clean

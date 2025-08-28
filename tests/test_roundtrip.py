@@ -1,5 +1,7 @@
 """Test a flatten/unflatten round trip"""
 
+import pytest
+
 import jmesflat as jf
 
 TEST_NEST = {
@@ -67,3 +69,5 @@ def test_roundtrip():
     flat = jf.flatten(TEST_NEST, level=1)
     assert flat == EXPECTED_FLAT
     assert jf.unflatten(flat, level=1) == TEST_NEST
+    with pytest.raises(ValueError, match="`level` parameter"):
+        jf.flatten([{"whoops": "outer list w/ level > 0!!"}], 1)
