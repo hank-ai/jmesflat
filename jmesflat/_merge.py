@@ -30,7 +30,7 @@ def merge(
     nest1: T,
     nest2: Any,
     level: int = 0,
-    array_merge: Literal["none", "topdown", "bottomup", "deduped"] = "none",
+    array_merge: Literal["overwrite", "topdown", "bottomup", "deduped"] = "overwrite",
     level_match_funcs: dict[int, LevelMatchFunc] | None = None,
     discard_check: Callable[[str, Any], bool] | None = None,
 ) -> T: ...
@@ -41,7 +41,7 @@ def merge(
     nest1: Any,
     nest2: T,
     level: int = 0,
-    array_merge: Literal["none", "topdown", "bottomup", "deduped"] = "none",
+    array_merge: Literal["overwrite", "topdown", "bottomup", "deduped"] = "overwrite",
     level_match_funcs: dict[int, LevelMatchFunc] | None = None,
     discard_check: Callable[[str, Any], bool] | None = None,
 ) -> T: ...
@@ -52,7 +52,7 @@ def merge(
     nest1: dict[str, Any] | list[Any],
     nest2: dict[str, Any] | list[Any],
     level: int = 0,
-    array_merge: Literal["none", "topdown", "bottomup", "deduped"] = "none",
+    array_merge: Literal["overwrite", "topdown", "bottomup", "deduped"] = "overwrite",
     level_match_funcs: dict[int, LevelMatchFunc] | None = None,
     discard_check: Callable[[str, Any], bool] | None = None,
 ) -> dict[str, Any] | list[Any]: ...
@@ -62,7 +62,7 @@ def merge(
     nest1: dict[str, Any] | list[Any],
     nest2: dict[str, Any] | list[Any],
     level: int = 0,
-    array_merge: Literal["none", "topdown", "bottomup", "deduped"] = "none",
+    array_merge: Literal["overwrite", "topdown", "bottomup", "deduped"] = "overwrite",
     level_match_funcs: dict[int, LevelMatchFunc] | None = None,
     discard_check: Callable[[str, Any], bool] | None = None,
 ) -> dict[str, Any] | list[Any]:
@@ -78,7 +78,7 @@ def merge(
         nest1: a nested json object
         nest2: the nested json object to merge into nest1
         level: the level at which the merge operation should occur
-        array_merge: if "none" (default), array entries from nest2 will \
+        array_merge: if "overwrite" (default), array entries from nest2 will \
             overwrite entries from nest1. if "topdown", array entries from \
             nest2 will extend the topmost array having a matching index. \
             if "bottomup", the lowest matched-index array is extended. \
@@ -169,7 +169,7 @@ def merge(
         discard_check=discard_check,
     )
 
-    if array_merge == "none":
+    if array_merge == "overwrite":
         return unflatten(flat1 | flat2)
 
     partition_func = str.partition if array_merge == "topdown" else str.rpartition

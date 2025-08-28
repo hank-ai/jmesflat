@@ -43,7 +43,7 @@ BASIC_NEST2 = jf.unflatten(
             BASIC_NEST2,
             BASIC_NEST2,
             0,
-            "none",
+            "overwrite",
             None,
             None,
         ),
@@ -151,7 +151,7 @@ BASIC_NEST2 = jf.unflatten(
                 "key4": {"id": 4, "data": "new"},
             },
             1,  # level
-            "none",  # array_match
+            "overwrite",  # array_match
             None,  # level_match_funcs (uses default_match)
             None,
         ),
@@ -170,7 +170,7 @@ BASIC_NEST2 = jf.unflatten(
                 "missing": {"c": 3, "d": 4},
             },
             1,  # level
-            "none",  # array_match
+            "overwrite",  # array_match
             None,  # level_match_funcs (uses default_match)
             None,
         ),
@@ -182,7 +182,7 @@ def test_merge(
     nest2: Union[dict[str, Any], list[Any]],
     expected: Union[dict[str, Any], list[Any]],
     level: int,
-    array_merge: Literal["none", "topdown", "bottomup", "deduped"],
+    array_merge: Literal["overwrite", "topdown", "bottomup", "deduped"],
     level_match_funcs: Optional[dict[int, jf.LevelMatchFunc]],
     discard_check: Optional[Callable[[str, Any], bool]],
 ):
