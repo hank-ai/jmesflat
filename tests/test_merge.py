@@ -43,7 +43,7 @@ BASIC_NEST2 = jf.unflatten(
             BASIC_NEST2,
             BASIC_NEST2,
             0,
-            "none",
+            "overwrite",
             None,
             None,
         ),
@@ -132,6 +132,48 @@ BASIC_NEST2 = jf.unflatten(
             },
             None,
         ),
+        (
+            "Default Match Function - Non-dict/list handling",  # title
+            {  # nest1
+                "key1": {"id": 1, "data": "value1"},
+                "key2": {"id": 2, "data": "value2"},
+                "key3": "string_value",  # Non-dict value
+            },
+            {  # nest2
+                "key1": {"id": 10, "data": "updated1"},
+                "key3": "another_string",  # Will match but return empty dict
+                "key4": {"id": 4, "data": "new"},
+            },
+            {  # expected
+                "key1": {"id": 10, "data": "updated1"},
+                "key2": {"id": 2, "data": "value2"},
+                "key3": "string_value",  # Unchanged due to default_match returning {}
+                "key4": {"id": 4, "data": "new"},
+            },
+            1,  # level
+            "overwrite",  # array_match
+            None,  # level_match_funcs (uses default_match)
+            None,
+        ),
+        (
+            "Default Match Function - Missing key creates empty dict",  # title
+            {  # nest1
+                "exists": {"a": 1, "b": 2},
+                "missing": {"c": 3, "d": 4},
+            },
+            {  # nest2
+                "exists": {"a": 10, "b": 20},
+                # "missing" key not in nest2
+            },
+            {  # expected
+                "exists": {"a": 10, "b": 20},
+                "missing": {"c": 3, "d": 4},
+            },
+            1,  # level
+            "overwrite",  # array_match
+            None,  # level_match_funcs (uses default_match)
+            None,
+        ),
     ],
 )
 def test_merge(
@@ -140,7 +182,7 @@ def test_merge(
     nest2: Union[dict[str, Any], list[Any]],
     expected: Union[dict[str, Any], list[Any]],
     level: int,
-    array_merge: Literal["none", "topdown", "bottomup", "deduped"],
+    array_merge: Literal["overwrite", "topdown", "bottomup", "deduped"],
     level_match_funcs: Optional[dict[int, jf.LevelMatchFunc]],
     discard_check: Optional[Callable[[str, Any], bool]],
 ):
@@ -153,3 +195,10 @@ def test_merge(
     assert merged == expected
     assert nest1 == nest1_original
     assert nest2 == nest2_original
+
+
+def test_merge_fail():
+    with pytest.raises(ValueError, match="`level` parameter"):
+        jf.merge([0], [1], 1)
+    with pytest.raises(ValueError, match="`level` parameter"):
+        jf.merge({"a": "b"}, [-5], 1)

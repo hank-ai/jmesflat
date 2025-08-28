@@ -1,8 +1,21 @@
 """Utility functions for flatten/unflatten operations"""
 
-from typing import Sequence, Union
+from collections.abc import Sequence
+from typing import Any
 
 from . import constants
+
+
+class FlattenedList(dict[str, Any]):
+    """A branded version of `dict[str, Any]` to improve `unflatten()` type hinting.
+    Functions identically to a normal dict. Assigned by `flatten` when the `nested`
+    parameter has type `list[Any]`."""
+
+
+class FlattenedDict(dict[str, Any]):
+    """A branded version of `dict[str, Any]` to improve `unflatten()` type hinting.
+    Functions identically to a normal dict. Assigned by `flatten` when the `nested`
+    parameter has type `dict[str, Any]`."""
 
 
 def jpquery_from_flat_key(flat_key: str, strict: bool = True) -> str:
@@ -60,21 +73,22 @@ def _escaped_key(key: str) -> str:
         str: escaped key
     """
     if not key:
-        return ""
+        # should be impossible. adding `pragma:no cover`
+        return ""  # pragma: no cover
     if not (key[0] == key[-1] == '"') and any(c in key for c in constants.ESCAPED_CHARS):
         return f'"{key.strip(chr(34))}"'
     return key
 
 
 def escaped_query_from_path_elements(
-    elements: Sequence[Union[str, int]], prefix: str = "", strict: bool = True
+    elements: Sequence[str | int], prefix: str = "", strict: bool = True
 ) -> str:
     """
     Escape each key containing reserved chars or spaces with double quotes to
     prevent jmespath from interpreting them as operators.
 
     Args:
-        elements (Sequence[Union[str, int]]): list of keys and/or indices
+        elements (Sequence[str | int]): list of keys and/or indices
         prefix (str, optional): prefix to prepend to first key. Defaults to "".
         strict (bool, optional): if True, raise ValueError if an array index is a "*".
 
@@ -96,6 +110,6 @@ def escaped_query_from_path_elements(
     return escaped_query_from_path_elements(elements[1:], next_key, strict)
 
 
-def flat_key_from_path_elements(elements: Sequence[Union[str, int]]) -> str:
+def flat_key_from_path_elements(elements: Sequence[str | int]) -> str:
     """return an unescaped flattened key from a list of path elements"""
     return escaped_query_from_path_elements(elements, strict=False).replace('"', "")

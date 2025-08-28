@@ -1,6 +1,7 @@
 """Implement the `flatten` function"""
 
-from typing import Any, Callable, Optional, Union
+from collections.abc import Callable
+from typing import Any, overload
 
 import jmespath as jp
 
@@ -8,10 +9,26 @@ from . import constants
 from . import utils
 
 
+@overload
 def flatten(
-    nested: Union[dict[str, Any], list[Any]],
+    nested: dict[str, Any],
     level: int = 0,
-    discard_check: Optional[Callable[[str, Any], bool]] = None,
+    discard_check: Callable[[str, Any], bool] | None = None,
+) -> utils.FlattenedDict: ...
+
+
+@overload
+def flatten(
+    nested: list[Any],
+    level: int = 0,
+    discard_check: Callable[[str, Any], bool] | None = None,
+) -> utils.FlattenedList: ...
+
+
+def flatten(
+    nested: dict[str, Any] | list[Any],
+    level: int = 0,
+    discard_check: Callable[[str, Any], bool] | None = None,
 ) -> dict[str, Any]:
     """
     Given a nested json object, return {jmespath_pattern: value} for all
@@ -36,11 +53,13 @@ def flatten(
             )
         return {k: flatten(v, level - 1, discard_check) for k, v in nested.items()}
 
+    return_type = utils.FlattenedDict if isinstance(nested, dict) else utils.FlattenedList
+
     discard_check = discard_check or constants.DISCARD_CHECK
 
     def _recurs_flatten(
-        _nest: Union[dict[str, Any], list[dict[str, Any]]],
-        _parent_keys: list[Union[str, int]],
+        _nest: dict[str, Any] | list[dict[str, Any]],
+        _parent_keys: list[str | int],
         _out_dict: dict[str, Any],
     ):
         query = utils.escaped_query_from_path_elements(_parent_keys)
@@ -67,4 +86,7 @@ def flatten(
             _recurs_flatten(nested, [key], out_dict)
         elif not (callable(discard_check) and discard_check(flat_key, val)):
             out_dict[flat_key] = val
-    return dict(sorted(out_dict.items(), key=lambda x: utils.raw_jpquery_path_elements(x[0])))
+
+    return return_type(
+        sorted(out_dict.items(), key=lambda x: utils.raw_jpquery_path_elements(x[0]))
+    )

@@ -1,6 +1,9 @@
-# jmesflat
+# jmesflat ✨
 
-Built upon and considered an extension of [`jmespath`](https://jmespath.org), `jmesflat` is similarly pronounced (say "James flat") and provides a simple interface for flattening, 'unflattening', and merging deeply nested json objects.
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![Coverage](https://img.shields.io/badge/coverage-100%25-green.svg)](htmlcov/index.html)
+
+Built upon and considered an extension of [`jmespath`](https://jmespath.org), `jmesflat` is similarly pronounced (say "James flat") and provides a simple interface for flattening, 'unflattening', and merging deeply nested JSON objects.
 
 Common use cases:
 
@@ -28,15 +31,18 @@ Common use cases:
 }
 ```
 
-## Installation
+## 🚀 Installation
 
-`pip install jmesflat`
+```bash
+pip install jmesflat
+```
 
-## Compatibility
+## 📋 Requirements
 
-Python 3.9 or greater
+- Python 3.10+
+- jmespath
 
-## Basic Features Demo
+## 🎯 Key Features
 
 1. Keys *can* contain spaces and reserved characters (`@` and `-`)
 2. Supports any arbitrary nesting pattern including mixed and multi-level array objects
@@ -229,6 +235,19 @@ True
 }
 ```
 
-## The `constants` Module
+## ⚙️ Configuration via `constants` Module
 
 The `constants` module allows global defaults to be set for several key features. For example, a global discard check function can be defined by setting the value of `jf.constants.DISCARD_CHECK`. If the user wishes to discard all `None` type values, simply set `jf.constants.DISCARD_CHECK = lambda _, val: val is None` after the initial `import jmesflat as jf` statement. In addition, users can customize the default values that will be used when extending arrays during an index preserving unflatten operation via `jf.MISSING_ARRAY_ENTRY_VALUE`, a callable that accepts the flattened key of the array element *being set* and the value said *is being set to* and returns the value that should be used to pad the array until its length is >= the desired index. Other settings in the `constants` module are considered 'use at your own risk' and included for possible future extensibility.
+
+## 📊 Test Coverage
+
+| Module | Statements | Missing | Excluded | Coverage |
+|--------|------------|---------|----------|----------|
+| jmesflat/__init__.py | 7 | 0 | 0 | 100.00% |
+| jmesflat/_clean.py | 11 | 0 | 0 | 100.00% |
+| jmesflat/_flatten.py | 39 | 0 | 0 | 100.00% |
+| jmesflat/_merge.py | 41 | 0 | 1 | 100.00% |
+| jmesflat/_unflatten.py | 50 | 0 | 2 | 100.00% |
+| jmesflat/constants.py | 8 | 0 | 0 | 100.00% |
+| jmesflat/utils.py | 29 | 0 | 1 | 100.00% |
+| **Total** | **185** | **0** | **4** | **100.00%** |

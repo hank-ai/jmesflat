@@ -1,6 +1,18 @@
-"""Initialize jmesflat package"""
+"""
+Flatten, unflatten, and merge deeply nested JSON objects using JMESPath notation.
 
-__version__ = "0.0.2"
+jmesflat extends JMESPath with powerful utilities for working with complex nested
+structures through flattened key-value representations (e.g., "a.b[0].c").
+
+Key features:
+- Flatten nested objects to dotted-key notation
+- Reconstruct nested structures from flattened representations
+- Deep merge with configurable array handling strategies
+- Clean/filter nested objects with custom logic
+- Support for spaces and special characters in keys
+"""
+
+__version__ = "0.1.0"
 
 from . import constants, utils
 from ._clean import clean

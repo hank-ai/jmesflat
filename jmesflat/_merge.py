@@ -1,6 +1,7 @@
 """Implement the `merge` function"""
 
-from typing import Any, Callable, Literal, Optional, Union
+from collections.abc import Callable
+from typing import Any, Literal, TypeVar, overload
 
 import jmespath as jp
 
@@ -10,33 +11,74 @@ from ._flatten import flatten
 from ._unflatten import unflatten
 
 
-LevelMatchFunc = Callable[[str, dict[str, Any], dict[str, Any]], Union[dict[str, Any], list[Any]]]
+T = TypeVar("T", dict[str, Any], list[Any])
+LevelMatchFunc = Callable[[str, dict[str, Any], dict[str, Any]], dict[str, Any] | list[Any]]
 
 
 def default_match(
-    nest1_key: str, _: dict[str, Any], nest2: dict[str, Any]
-) -> Union[dict[str, Any], list[Any]]:
+    nest1_key: str, nest1: dict[str, Any], nest2: dict[str, Any]
+) -> dict[str, Any] | list[Any]:
     """The default level match func. Requires direct key matches between nest1 and nest2."""
-    return nest2.pop(nest1_key, None) or {}
+    match = nest2.pop(nest1_key, None) or type(nest1)()
+    if not isinstance(match, (list, dict)):
+        return {}
+    return match
+
+
+@overload
+def merge(
+    nest1: T,
+    nest2: Any,
+    level: int = 0,
+    array_merge: Literal["overwrite", "topdown", "bottomup", "deduped"] = "overwrite",
+    level_match_funcs: dict[int, LevelMatchFunc] | None = None,
+    discard_check: Callable[[str, Any], bool] | None = None,
+) -> T: ...
+
+
+@overload
+def merge(
+    nest1: Any,
+    nest2: T,
+    level: int = 0,
+    array_merge: Literal["overwrite", "topdown", "bottomup", "deduped"] = "overwrite",
+    level_match_funcs: dict[int, LevelMatchFunc] | None = None,
+    discard_check: Callable[[str, Any], bool] | None = None,
+) -> T: ...
+
+
+@overload
+def merge(
+    nest1: dict[str, Any] | list[Any],
+    nest2: dict[str, Any] | list[Any],
+    level: int = 0,
+    array_merge: Literal["overwrite", "topdown", "bottomup", "deduped"] = "overwrite",
+    level_match_funcs: dict[int, LevelMatchFunc] | None = None,
+    discard_check: Callable[[str, Any], bool] | None = None,
+) -> dict[str, Any] | list[Any]: ...
 
 
 def merge(
-    nest1: Union[dict[str, Any], list[Any]],
-    nest2: Union[dict[str, Any], list[Any]],
+    nest1: dict[str, Any] | list[Any],
+    nest2: dict[str, Any] | list[Any],
     level: int = 0,
-    array_merge: Literal["none", "topdown", "bottomup", "deduped"] = "none",
-    level_match_funcs: Optional[dict[int, LevelMatchFunc]] = None,
-    discard_check: Optional[Callable[[str, Any], bool]] = None,
-) -> Union[dict[str, Any], list[Any]]:
+    array_merge: Literal["overwrite", "topdown", "bottomup", "deduped"] = "overwrite",
+    level_match_funcs: dict[int, LevelMatchFunc] | None = None,
+    discard_check: Callable[[str, Any], bool] | None = None,
+) -> dict[str, Any] | list[Any]:
     """
     Return the object resulting from a nested merge of nest1 and nest2
     with nest2 values having priority in the event of a key collision.
+
+    NOTE: discard_check is *ONLY* applied to nest2 during a merge operation.
+    This allows selective retention of nest1 values. Use `clean` on nest1
+    to apply the discard_check yourself if needed.
 
     Args:
         nest1: a nested json object
         nest2: the nested json object to merge into nest1
         level: the level at which the merge operation should occur
-        array_merge: if "none" (default), array entries from nest2 will \
+        array_merge: if "overwrite" (default), array entries from nest2 will \
             overwrite entries from nest1. if "topdown", array entries from \
             nest2 will extend the topmost array having a matching index. \
             if "bottomup", the lowest matched-index array is extended. \
@@ -53,7 +95,7 @@ def merge(
             NOTE: level match funcs should *consume* nest2 as objects are returned. \
             I.e. the returned value should be 'popped' from nest2 for the typical \
             use case. An entry for level `0` that returns a static dict can be \
-            to merge the same value set into *all* level `0` nest1 objects. To \
+            used to merge the same value set into *all* level `0` nest1 objects. To \
             enable this functionality, nest2 should be supplied as an empty dict.
         discard_check: optional function that will disregard atomic values \
             *from nest2* if discard_check(flat_key, value) returns True. allows \
@@ -85,9 +127,18 @@ def merge(
             'nest2-2': {'data': ['nest2-21', 'nest2-22', 2], 'id': 2}
         }
 
+    Note on Type Safety:
+        This function preserves types: dict inputs produce dict output, \
+        list inputs produce list output. The implementation guarantees this \
+        type preservation, though Python's type system cannot fully express \
+        this guarantee due to the runtime dependency on flattened key patterns. \
+        The @overload decorators provide type hints for common cases.
+
     Returns:
-        dict[str, Any]: the merged object
+        The merged object with the same type as the inputs (dict or list)
     """
+    if not nest2:
+        return nest1
 
     if level:
         if not isinstance(nest1, dict):
@@ -118,7 +169,7 @@ def merge(
         discard_check=discard_check,
     )
 
-    if array_merge == "none":
+    if array_merge == "overwrite":
         return unflatten(flat1 | flat2)
 
     partition_func = str.partition if array_merge == "topdown" else str.rpartition

@@ -1,16 +1,21 @@
 "Implement the `clean` function"
 
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any, TypeVar
 
 from . import constants
 from ._flatten import flatten
 from ._unflatten import unflatten
 
 
+# pylint: disable=invalid-name
+T_TOP = TypeVar("T_TOP", dict[str, Any], list[Any])
+
+
 def clean(
-    nested: constants.T_TOP,
-    discard_check: Optional[Callable[[str, Any], bool]] = None,
-) -> constants.T_TOP:
+    nested: T_TOP,
+    discard_check: Callable[[str, Any], bool] | None = None,
+) -> T_TOP:
     """
     Apply `discard_check` to all atomic values in nested and remove entries
     for which `discard_check` returns True.

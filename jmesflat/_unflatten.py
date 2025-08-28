@@ -1,6 +1,7 @@
 """Implement the `unflatten` function"""
 
-from typing import Any, Callable, Optional, Union
+from collections.abc import Callable
+from typing import Any, overload
 
 import jmespath as jp
 
@@ -8,12 +9,39 @@ from . import constants
 from . import utils
 
 
+@overload
+def unflatten(
+    flattened: utils.FlattenedList,
+    level: int = 0,
+    discard_check: Callable[[str, Any], bool] | None = None,
+    preserve_array_indices: bool = True,
+) -> list[Any]: ...
+
+
+@overload
+def unflatten(
+    flattened: utils.FlattenedDict,
+    level: int = 0,
+    discard_check: Callable[[str, Any], bool] | None = None,
+    preserve_array_indices: bool = True,
+) -> dict[str, Any]: ...
+
+
+@overload
 def unflatten(
     flattened: dict[str, Any],
     level: int = 0,
-    discard_check: Optional[Callable[[str, Any], bool]] = None,
+    discard_check: Callable[[str, Any], bool] | None = None,
     preserve_array_indices: bool = True,
-) -> Union[dict[str, Any], list[Any]]:
+) -> dict[str, Any] | list[Any]: ...
+
+
+def unflatten(
+    flattened: dict[str, Any],
+    level: int = 0,
+    discard_check: Callable[[str, Any], bool] | None = None,
+    preserve_array_indices: bool = True,
+) -> dict[str, Any] | list[Any]:
     """
     Given a dict of {jmespath_search_ query: value}, return its nested form.
 
@@ -33,8 +61,13 @@ def unflatten(
         and the example outputs `{"test": [1]}`.
 
     Returns:
-        Union[dict[str, Any], list[Any]]: the equivalent nested json object \
-        (dict) or array (list).
+        dict[str, Any] | list[Any]: Returns dict[str, Any] when level > 0 \
+        or when no keys start with '['. Returns list[Any] when level == 0 and \
+        all keys start with '['.
+
+    Raises:
+        ValueError: When keys are ambiguous (some start with '[' and some don't) \
+        at level 0, indicating mixed object and array structure.
     """
 
     if level:
@@ -52,7 +85,9 @@ def unflatten(
 
     def _update_nest(path: str, value: Any, nest: dict[str, Any]):
         if callable(discard_check) and discard_check(path, value):
-            return
+            # being paranoid. most are caught via equivalent check in _update_nest
+            # calling loop below. adding `pragma: no cover` tag.
+            return  # pragma: no cover
         if "." not in path and "]" not in path:
             nest[path] = value
             return

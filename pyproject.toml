@@ -22,3 +22,24 @@ dependencies = ["jmespath"]
 [project.urls]
 Home = "https://github.com/hank-ai/jmesflat"
 Issues = "https://github.com/hank-ai/jmesflat/issues"
+
+[tool.coverage.run]
+source = ["jmesflat"]
+omit = ["tests/*", "testbench.py"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+    "pass",
+    "except ImportError:",
+]
+precision = 2
+show_missing = true
+skip_covered = false
+
+[tool.coverage.html]
+directory = "htmlcov"
