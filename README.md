@@ -244,10 +244,10 @@ The `constants` module allows global defaults to be set for several key features
 | Module | Statements | Missing | Excluded | Coverage |
 |--------|------------|---------|----------|----------|
 | jmesflat/__init__.py | 7 | 0 | 0 | 100.00% |
-| jmesflat/_clean.py | 11 | 4 | 0 | 63.64% |
-| jmesflat/_flatten.py | 39 | 29 | 0 | 25.64% |
-| jmesflat/_merge.py | 41 | 24 | 1 | 41.46% |
-| jmesflat/_unflatten.py | 50 | 9 | 2 | 82.00% |
+| jmesflat/_clean.py | 11 | 0 | 0 | 100.00% |
+| jmesflat/_flatten.py | 39 | 0 | 0 | 100.00% |
+| jmesflat/_merge.py | 41 | 0 | 1 | 100.00% |
+| jmesflat/_unflatten.py | 50 | 0 | 2 | 100.00% |
 | jmesflat/constants.py | 8 | 0 | 0 | 100.00% |
-| jmesflat/utils.py | 29 | 5 | 1 | 82.76% |
-| **Total** | **185** | **71** | **4** | **61.62%** |
+| jmesflat/utils.py | 29 | 0 | 1 | 100.00% |
+| **Total** | **185** | **0** | **4** | **100.00%** |
