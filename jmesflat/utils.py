@@ -75,7 +75,9 @@ def _escaped_key(key: str) -> str:
     if not key:
         # should be impossible. adding `pragma:no cover`
         return ""  # pragma: no cover
-    if not (key[0] == key[-1] == '"') and any(c in key for c in constants.ESCAPED_CHARS):
+    if not (key[0] == key[-1] == '"') and (
+        any(c in key for c in constants.ESCAPED_CHARS) or all(c.isnumeric() for c in key)
+    ):
         return f'"{key.strip(chr(34))}"'
     return key
 
