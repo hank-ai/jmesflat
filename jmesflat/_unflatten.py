@@ -1,5 +1,7 @@
 """Implement the `unflatten` function"""
 
+import logging
+import re
 from collections.abc import Callable
 from typing import Any, overload
 
@@ -7,6 +9,9 @@ import jmespath as jp
 
 from . import constants
 from . import utils
+
+
+logger = logging.getLogger(__name__)
 
 
 @overload
@@ -83,34 +88,43 @@ def unflatten(
 
     discard_check = discard_check or constants.DISCARD_CHECK
 
+    final_element_pattern = re.compile(rf"(.*?){constants.PATH_ELEMENT_REGEX.pattern}$")
+
     def _update_nest(path: str, value: Any, nest: dict[str, Any]):
         if callable(discard_check) and discard_check(path, value):
             # being paranoid. most are caught via equivalent check in _update_nest
             # calling loop below. adding `pragma: no cover` tag.
             return  # pragma: no cover
         if "." not in path and "]" not in path:
-            nest[path] = value
+            nest[path.strip('"')] = value
             return
-        parent_path, _, child_key = (path, "", "") if path.endswith("]") else path.rpartition(".")
+        if path.endswith("]"):
+            parent_path = path
+            child_key = ""
+        elif final_element_match := final_element_pattern.match(path):
+            parent_path, _, child_key = final_element_match.groups()
+        else:
+            logger.warning("Skipping invalid unflatten path: '%s'", path)
+            return
         if parent_path.endswith("]"):
             pkey, _, pidx = parent_path[:-1].rpartition("[")
             if not isinstance(_list := jp.search(utils.jpquery_from_flat_key(pkey), nest), list):
                 _update_nest(pkey, _list := [], nest)
             if child_key and len(_list) > int(pidx):
-                _list[int(pidx)][child_key] = value
+                _list[int(pidx)][child_key.strip('"')] = value
                 return
             while preserve_array_indices and len(_list) < int(pidx):
                 _missing = constants.MISSING_ARRAY_ENTRY_VALUE(path, value)
                 if callable(discard_check) and discard_check(path, _missing):
                     break
                 _list.append(_missing)
-            _list.append({child_key: value} if child_key else value)
+            _list.append({child_key.strip('"'): value} if child_key else value)
             return
         elif child_key and not isinstance(
             jp.search(utils.jpquery_from_flat_key(parent_path), nest), dict
         ):
             _update_nest(parent_path, {}, nest)
-        jp.search(utils.jpquery_from_flat_key(parent_path), nest)[child_key] = value
+        jp.search(utils.jpquery_from_flat_key(parent_path), nest)[child_key.strip('"')] = value
 
     out_dict: dict[str, Any] = {}
     pop_top: bool = False
