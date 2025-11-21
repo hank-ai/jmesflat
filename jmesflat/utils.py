@@ -114,4 +114,4 @@ def escaped_query_from_path_elements(
 
 def flat_key_from_path_elements(elements: Sequence[str | int]) -> str:
     """return an unescaped flattened key from a list of path elements"""
-    return escaped_query_from_path_elements(elements, strict=False).replace('"', "")
+    return escaped_query_from_path_elements(elements, strict=False)

@@ -12,7 +12,7 @@ Key features:
 - Support for spaces and special characters in keys
 """
 
-__version__ = "0.1.2"
+__version__ = "0.2.0"
 
 from . import constants, utils
 from ._clean import clean
