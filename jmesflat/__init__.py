@@ -12,7 +12,7 @@ Key features:
 - Support for spaces and special characters in keys
 """
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 from . import constants, utils
 from ._clean import clean
@@ -20,4 +20,12 @@ from ._flatten import flatten
 from ._merge import merge, LevelMatchFunc
 from ._unflatten import unflatten
 
-__all__ = ["clean", "constants", "flatten", "merge", "unflatten", "utils", "LevelMatchFunc"]
+__all__ = [
+    "clean",
+    "constants",
+    "flatten",
+    "merge",
+    "unflatten",
+    "utils",
+    "LevelMatchFunc",
+]

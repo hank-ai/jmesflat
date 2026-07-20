@@ -74,6 +74,10 @@ def flatten(
             return
         flat_key = utils.flat_key_from_path_elements(_parent_keys)
         if not (callable(discard_check) and discard_check(flat_key, this_entry)):
+            if isinstance(this_entry, (dict, list)) and not this_entry:
+                # copy empty containers so the flattened output never aliases
+                # (and can never be used to mutate) the input's leaf objects
+                this_entry = type(this_entry)()
             _out_dict[flat_key] = this_entry
 
     out_dict: dict[str, Any] = {}
@@ -85,7 +89,9 @@ def flatten(
         if not isinstance(val, constants.ATOMIC_TYPES) and not empty_container:
             _recurs_flatten(nested, [key], out_dict)
         elif not (callable(discard_check) and discard_check(flat_key, val)):
-            out_dict[flat_key] = val
+            # copy empty containers so the flattened output never aliases
+            # (and can never be used to mutate) the input's leaf objects
+            out_dict[flat_key] = type(val)() if empty_container else val
 
     return return_type(
         sorted(out_dict.items(), key=lambda x: utils.raw_jpquery_path_elements(x[0]))

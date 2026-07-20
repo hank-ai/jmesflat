@@ -136,5 +136,11 @@ def unflatten(
             path = f"__top__{path}"
         if callable(discard_check) and discard_check(path, value):
             continue
+        if isinstance(value, (dict, list)) and not value:
+            # copy empty containers before planting them: deeper sibling keys
+            # descend INTO the planted object, and inserting into a caller
+            # supplied `{}`/`[]` would mutate the input (and anything that
+            # shares a reference to it)
+            value = type(value)()
         _update_nest(path, value, out_dict)
     return out_dict.pop("__top__") if pop_top else out_dict
