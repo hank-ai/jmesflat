@@ -24,6 +24,12 @@ BASIC_NEST2 = jf.unflatten(
     }
 )
 
+# a dict key that itself looks like a jmespath array path. brackets belonging to
+# a quoted literal key must never be read as array references during a merge.
+BRACKETED_KEY = "patient_info.insurance[0].company"
+BRACKETED_NEST1 = {"hre": {"roleOverrides": {BRACKETED_KEY: "DATA_ENTRY"}, "order": ["first"]}}
+BRACKETED_NEST2 = {"hre": {"roleOverrides": {BRACKETED_KEY: "CHARGE_ENTRY"}, "order": ["second"]}}
+
 
 @pytest.mark.parametrize(
     argnames=(
@@ -130,6 +136,101 @@ BASIC_NEST2 = jf.unflatten(
                     else {}
                 )
             },
+            None,
+        ),
+        (
+            "Bracketed Literal Key, Top Down",
+            BRACKETED_NEST1,
+            BRACKETED_NEST2,
+            {
+                "hre": {
+                    # NOTE: "topdown" has always dropped nest2 keys holding no
+                    # array reference -- see "Basic Top Down Merge" and 'a.e'.
+                    "roleOverrides": {BRACKETED_KEY: "DATA_ENTRY"},
+                    "order": ["first", "second"],
+                }
+            },
+            0,
+            "topdown",
+            None,
+            None,
+        ),
+        (
+            "Bracketed Literal Key, Bottom Up",
+            BRACKETED_NEST1,
+            BRACKETED_NEST2,
+            {
+                "hre": {
+                    "roleOverrides": {BRACKETED_KEY: "CHARGE_ENTRY"},
+                    "order": ["first", "second"],
+                }
+            },
+            0,
+            "bottomup",
+            None,
+            None,
+        ),
+        (
+            "Bracketed Literal Key, Deduped Identical Nests",
+            BRACKETED_NEST1,
+            # nest2 duplicates nest1 exactly, so every flat entry is deduped away
+            # and 'order' must not pick up a second "first".
+            deepcopy(BRACKETED_NEST1),
+            deepcopy(BRACKETED_NEST1),
+            0,
+            "deduped",
+            None,
+            None,
+        ),
+        (
+            # a *leaf* bracketed literal key surviving the dedup filter is the only
+            # shape that reaches the index split in "deduped" mode -- the shape that
+            # raised LexerError. Keep it: "deduped" is what spec merges use.
+            "Bracketed Literal Key, Deduped Differing Nests",
+            BRACKETED_NEST1,
+            BRACKETED_NEST2,
+            {
+                "hre": {
+                    "roleOverrides": {BRACKETED_KEY: "CHARGE_ENTRY"},
+                    "order": ["first", "second"],
+                }
+            },
+            0,
+            "deduped",
+            None,
+            None,
+        ),
+        (
+            "Bracketed Literal Key Holding An Array, Top Down",
+            {"cfg": {BRACKETED_KEY: ["nest1"]}},
+            {"cfg": {BRACKETED_KEY: ["nest2"]}},
+            {"cfg": {BRACKETED_KEY: ["nest1", "nest2"]}},
+            0,
+            "topdown",
+            None,
+            None,
+        ),
+        (
+            "Bracketed Literal Key Holding An Array, Bottom Up",
+            {"cfg": {BRACKETED_KEY: ["nest1"]}},
+            {"cfg": {BRACKETED_KEY: ["nest2"]}},
+            {"cfg": {BRACKETED_KEY: ["nest1", "nest2"]}},
+            0,
+            "bottomup",
+            None,
+            None,
+        ),
+        (
+            "Bracketed Literal Key Holding An Array, Deduped",
+            {"cfg": {BRACKETED_KEY: ["shared", "nest1-only", 0]}},
+            {"cfg": {BRACKETED_KEY: ["shared", "nest2-only", 0]}},
+            # positional dedup drops the entries matching nest1; the survivor is
+            # appended past the end of nest1's array -- an index shift that has to
+            # resolve the bracketed literal key as its prefix.
+            {"cfg": {BRACKETED_KEY: ["shared", "nest1-only", 0, "nest2-only"]}},
+            0,
+            "deduped",
+            None,
             None,
         ),
         (
