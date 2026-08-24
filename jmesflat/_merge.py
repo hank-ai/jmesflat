@@ -215,15 +215,22 @@ def merge(
         nests are arrays. There is no query for "the whole document" -- an empty
         element list raises `IndexError` -- so `nest1` is measured directly.
 
+        Anything but an array yields 0. There are no `nest1` entries to extend,
+        so `nest2` keeps its own indices and wins the collision -- what
+        `array_merge="overwrite"` already does with the same input. Measuring a
+        str or dict instead would shift by an unrelated length and pad the
+        result with phantom entries, and measuring a number would raise.
+
         Args:
             prefix (list[str | int]): path elements addressing an array in `nest1`
 
         Returns:
-            int: entry count, or 0 where `prefix` addresses nothing array-like
+            int: entry count, or 0 where `prefix` addresses anything but an array
         """
-        if not prefix:
-            return len(nest1) if isinstance(nest1, list) else 0
-        return len(jp.search(utils.escaped_query_from_path_elements(prefix), nest1) or "")
+        target = (
+            jp.search(utils.escaped_query_from_path_elements(prefix), nest1) if prefix else nest1
+        )
+        return len(target) if isinstance(target, list) else 0
 
     array_splits = {k: _array_split(k) for k in flat2}
     prefix_replacements = {

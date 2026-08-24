@@ -285,6 +285,51 @@ BRACKETED_NEST2 = {"hre": {"roleOverrides": {BRACKETED_KEY: "CHARGE_ENTRY"}, "or
             None,
         ),
         (
+            # nest1 holding a non-array where nest2 holds an array leaves no
+            # entries to extend, so nest2 keeps its own indices and wins -- the
+            # same result "overwrite" produces. Measuring the non-array instead
+            # raised TypeError on a number and, for a str/dict, shifted by an
+            # unrelated length: 'xy' padded the output to [None, None, 2].
+            "Number Under Array Prefix, Top Down",
+            {"a": {"b": 1}},
+            {"a": {"b": [2]}},
+            {"a": {"b": [2]}},
+            0,
+            "topdown",
+            None,
+            None,
+        ),
+        (
+            "Number Under Array Prefix, Deduped",
+            {"a": {"b": 1}},
+            {"a": {"b": [2]}},
+            {"a": {"b": [2]}},
+            0,
+            "deduped",
+            None,
+            None,
+        ),
+        (
+            "String Under Array Prefix, Top Down",
+            {"a": {"b": "xy"}},
+            {"a": {"b": [2]}},
+            {"a": {"b": [2]}},
+            0,
+            "topdown",
+            None,
+            None,
+        ),
+        (
+            "String Under Array Prefix, Bottom Up",
+            {"a": {"b": "xy"}},
+            {"a": {"b": [2]}},
+            {"a": {"b": [2]}},
+            0,
+            "bottomup",
+            None,
+            None,
+        ),
+        (
             "Default Match Function - Non-dict/list handling",  # title
             {  # nest1
                 "key1": {"id": 1, "data": "value1"},
