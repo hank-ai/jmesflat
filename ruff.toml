@@ -1,0 +1,39 @@
+target-version = "py310"
+line-length = 99
+exclude = ["*.interactive"]
+
+[lint]
+select = ["E", "F", "I", "B", "PL"]
+ignore = [
+    "E501", # line too long — ruff format handles wrappable code; remaining are strings/comments
+    "B034", # regex function use without kwargs; unnecessary
+    "B905", # zip use without explicit strict arg; consider complying in a future release
+    "PLR", # ignore 'refactor' level
+    "PLW2901", # ignore redefined loop variable; consider complying in a future release
+]
+
+[lint.per-file-ignores]
+"tests/*" = ["E", "F", "I", "B", "PL"]
+"scripts/*" = ["E", "F", "I", "B", "PL"]
+
+[lint.isort]
+known-first-party = [
+    "utilities",
+    "dbops",
+    "integrators",
+    "matchops",
+    "schemaops",
+    "specs",
+    "notify",
+    "rollup_cascade",
+    "gvars",
+    "aws_extractor",
+    "aws_s3_batch",
+    "section_extractor",
+    "table_extractor",
+    "table_transformer",
+    "pdf_extractor",
+    "schema_manager",
+    "llm_testing",
+    "create_facilities",
+]
