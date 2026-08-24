@@ -71,8 +71,9 @@ def unflatten(
         all keys start with '['.
 
     Raises:
-        ValueError: When keys are ambiguous (some start with '[' and some don't) \
-        at level 0, indicating mixed object and array structure.
+        ValueError: When keys are ambiguous at level 0, i.e. two keys addressing \
+        the same path indicate both object and array -- at the root (some start \
+        with '[' and some don't) or at any depth below it.
     """
 
     if level:
@@ -81,14 +82,53 @@ def unflatten(
             for k, v in flattened.items()
         }
 
-    if any(k.startswith("[") for k in flattened) and not all(k.startswith("[") for k in flattened):
-        raise ValueError(
-            "Ambiguous Entry Detected: Top level keys indicate both object and array."
-        )
+    # A path addresses either an object or an array, never both. `flatten` cannot
+    # emit a contradiction, but a hand built dict -- or `merge` unioning two nests
+    # that disagree at a path -- can. Caught at the root since inception; below the
+    # root it used to surface as an opaque `TypeError` out of the `sorted` call
+    # below, comparing an array index against a sibling object key.
+    container_kinds: dict[tuple[str | int, ...], str] = {}
+    for flat_key in flattened:
+        elements = utils.raw_jpquery_path_elements(flat_key)
+        for depth, element in enumerate(elements):
+            kind = "array" if isinstance(element, int) else "object"
+            prefix = tuple(elements[:depth])
+            if container_kinds.setdefault(prefix, kind) == kind:
+                continue
+            located = (
+                "Top level keys"
+                if not prefix
+                else f"Keys below {utils.flat_key_from_path_elements(list(prefix))!r}"
+            )
+            raise ValueError(
+                f"Ambiguous Entry Detected: {located} indicate both object and array."
+            )
 
     discard_check = discard_check or constants.DISCARD_CHECK
 
     final_element_pattern = re.compile(rf"(.*?){constants.PATH_ELEMENT_REGEX.pattern}$")
+
+    def _parent_object(parent_path: str, nest: dict[str, Any]) -> Any:
+        """
+        Return the object that `parent_path` addresses within `nest`.
+
+        An empty `parent_path` means the key being planted sits at the root. That
+        is the case for a top level key which needed quoting -- `'"a.b"'` matches
+        the final element pattern whole, leaving nothing to its left. `jmespath`
+        has no expression for "the whole document" (an empty element list raises
+        `IndexError`), so `nest` itself is the answer.
+
+        Args:
+            parent_path (str): flat key prefix addressing the parent container
+            nest (dict[str, Any]): the object under construction
+
+        Returns:
+            Any: the addressed object, or None where `parent_path` addresses \
+                nothing yet
+        """
+        if not parent_path:
+            return nest
+        return jp.search(utils.jpquery_from_flat_key(parent_path), nest)
 
     def _update_nest(path: str, value: Any, nest: dict[str, Any]):
         if callable(discard_check) and discard_check(path, value):
@@ -108,7 +148,7 @@ def unflatten(
             return
         if parent_path.endswith("]"):
             pkey, _, pidx = parent_path[:-1].rpartition("[")
-            if not isinstance(_list := jp.search(utils.jpquery_from_flat_key(pkey), nest), list):
+            if not isinstance(_list := _parent_object(pkey, nest), list):
                 _update_nest(pkey, _list := [], nest)
             if child_key and len(_list) > int(pidx):
                 _list[int(pidx)][child_key.strip('"')] = value
@@ -120,11 +160,9 @@ def unflatten(
                 _list.append(_missing)
             _list.append({child_key.strip('"'): value} if child_key else value)
             return
-        elif child_key and not isinstance(
-            jp.search(utils.jpquery_from_flat_key(parent_path), nest), dict
-        ):
+        elif child_key and not isinstance(_parent_object(parent_path, nest), dict):
             _update_nest(parent_path, {}, nest)
-        jp.search(utils.jpquery_from_flat_key(parent_path), nest)[child_key.strip('"')] = value
+        _parent_object(parent_path, nest)[child_key.strip('"')] = value
 
     out_dict: dict[str, Any] = {}
     pop_top: bool = False

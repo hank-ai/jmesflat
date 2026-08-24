@@ -172,26 +172,83 @@ def merge(
     if array_merge == "overwrite":
         return unflatten(flat1 | flat2)
 
-    partition_func = str.partition if array_merge == "topdown" else str.rpartition
+    split_from_end = array_merge != "topdown"
 
     if array_merge == "deduped":
         flat2 = {k: v for k, v in flat2.items() if v != flat1.get(k, not v)}
 
+    def _array_split(
+        flat_key: str,
+    ) -> tuple[list[str | int], int, list[str | int]] | None:
+        """
+        Split `flat_key` around the array index that governs the merge: the first
+        index for "topdown", the last for "bottomup"/"deduped".
+
+        The split walks *path elements* rather than raw "[" characters so that
+        brackets belonging to a quoted literal key (e.g. `a."b[0].c"`) are never
+        mistaken for array references. Splitting such a key on the raw string
+        left an unbalanced quote in the prefix, which `jmespath` rejected with
+        `LexerError: Bad jmespath expression: Unclosed " delimiter`.
+
+        Args:
+            flat_key (str): flattened json key from `nest2`
+
+        Returns:
+            tuple[list[str | int], int, list[str | int]] | None: the path \
+                elements preceding the governing index, the index itself, \
+                and the trailing path elements. None when `flat_key` holds \
+                no array reference.
+        """
+        elements = utils.raw_jpquery_path_elements(flat_key)
+        positions = [pos for pos, element in enumerate(elements) if isinstance(element, int)]
+        if not positions:
+            return None
+        split_at = positions[-1] if split_from_end else positions[0]
+        return elements[:split_at], int(elements[split_at]), elements[split_at + 1 :]
+
+    def _prefix_length(prefix: list[str | int]) -> int:
+        """
+        Return the length of the `nest1` array that `prefix` addresses, which is
+        the offset each `nest2` index below it shifts by.
+
+        An empty `prefix` means the governing index sits at the root, i.e. both
+        nests are arrays. There is no query for "the whole document" -- an empty
+        element list raises `IndexError` -- so `nest1` is measured directly.
+
+        Anything but an array yields 0. There are no `nest1` entries to extend,
+        so `nest2` keeps its own indices and wins the collision -- what
+        `array_merge="overwrite"` already does with the same input. Measuring a
+        str or dict instead would shift by an unrelated length and pad the
+        result with phantom entries, and measuring a number would raise.
+
+        Args:
+            prefix (list[str | int]): path elements addressing an array in `nest1`
+
+        Returns:
+            int: entry count, or 0 where `prefix` addresses anything but an array
+        """
+        target = (
+            jp.search(utils.escaped_query_from_path_elements(prefix), nest1) if prefix else nest1
+        )
+        return len(target) if isinstance(target, list) else 0
+
+    array_splits = {k: _array_split(k) for k in flat2}
     prefix_replacements = {
-        prefix: len(jp.search(utils.jpquery_from_flat_key(prefix), nest1) or "")
-        for prefix in set(partition_func(k, "[")[0] for k in flat2 if "[" in k)
+        tuple(prefix): _prefix_length(prefix)
+        for prefix, _, _ in filter(None, array_splits.values())
     }
     flat2 = {
         (
-            k.replace(
-                f"{_parts[0]}[{_idx}]",
-                f"{_parts[0]}[{prefix_replacements[_parts[0]] + int(_idx)}]",
-                1,
+            utils.flat_key_from_path_elements(
+                [
+                    *_split[0],
+                    prefix_replacements[tuple(_split[0])] + _split[1],
+                    *_split[2],
+                ]
             )
-            if _parts[0] in prefix_replacements
+            if (_split := array_splits[k])
             else k
         ): v
         for k, v in flat2.items()
-        if (_parts := partition_func(k, "[")) and (_idx := _parts[-1].partition("]")[0])
     }
     return unflatten(flat1 | flat2, preserve_array_indices=array_merge == "topdown")

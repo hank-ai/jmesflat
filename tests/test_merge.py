@@ -24,6 +24,12 @@ BASIC_NEST2 = jf.unflatten(
     }
 )
 
+# a dict key that itself looks like a jmespath array path. brackets belonging to
+# a quoted literal key must never be read as array references during a merge.
+BRACKETED_KEY = "patient_info.insurance[0].company"
+BRACKETED_NEST1 = {"hre": {"roleOverrides": {BRACKETED_KEY: "DATA_ENTRY"}, "order": ["first"]}}
+BRACKETED_NEST2 = {"hre": {"roleOverrides": {BRACKETED_KEY: "CHARGE_ENTRY"}, "order": ["second"]}}
+
 
 @pytest.mark.parametrize(
     argnames=(
@@ -57,7 +63,7 @@ BASIC_NEST2 = jf.unflatten(
                         {"c": "nest1->a->b->0->>c", "d": ["nest1->a->b->0->d->>0"]},
                         {"c": "nest2->a->b->0->>c", "d": ["nest2->a->b->0->d->>0"]},
                     ],
-                    "e": "nest1->a->e",
+                    "e": "nest2->a->e",
                 }
             },
             0,
@@ -133,6 +139,197 @@ BASIC_NEST2 = jf.unflatten(
             None,
         ),
         (
+            "Bracketed Literal Key, Top Down",
+            BRACKETED_NEST1,
+            BRACKETED_NEST2,
+            {
+                "hre": {
+                    "roleOverrides": {BRACKETED_KEY: "CHARGE_ENTRY"},
+                    "order": ["first", "second"],
+                }
+            },
+            0,
+            "topdown",
+            None,
+            None,
+        ),
+        (
+            "Bracketed Literal Key, Bottom Up",
+            BRACKETED_NEST1,
+            BRACKETED_NEST2,
+            {
+                "hre": {
+                    "roleOverrides": {BRACKETED_KEY: "CHARGE_ENTRY"},
+                    "order": ["first", "second"],
+                }
+            },
+            0,
+            "bottomup",
+            None,
+            None,
+        ),
+        (
+            "Bracketed Literal Key, Deduped Identical Nests",
+            BRACKETED_NEST1,
+            # nest2 duplicates nest1 exactly, so every flat entry is deduped away
+            # and 'order' must not pick up a second "first".
+            deepcopy(BRACKETED_NEST1),
+            deepcopy(BRACKETED_NEST1),
+            0,
+            "deduped",
+            None,
+            None,
+        ),
+        (
+            # a *leaf* bracketed literal key surviving the dedup filter is the shape
+            # that raised LexerError in "deduped" mode -- what spec merges use.
+            "Bracketed Literal Key, Deduped Differing Nests",
+            BRACKETED_NEST1,
+            BRACKETED_NEST2,
+            {
+                "hre": {
+                    "roleOverrides": {BRACKETED_KEY: "CHARGE_ENTRY"},
+                    "order": ["first", "second"],
+                }
+            },
+            0,
+            "deduped",
+            None,
+            None,
+        ),
+        (
+            "Bracketed Literal Key Holding An Array, Top Down",
+            {"cfg": {BRACKETED_KEY: ["nest1"]}},
+            {"cfg": {BRACKETED_KEY: ["nest2"]}},
+            {"cfg": {BRACKETED_KEY: ["nest1", "nest2"]}},
+            0,
+            "topdown",
+            None,
+            None,
+        ),
+        (
+            "Bracketed Literal Key Holding An Array, Bottom Up",
+            {"cfg": {BRACKETED_KEY: ["nest1"]}},
+            {"cfg": {BRACKETED_KEY: ["nest2"]}},
+            {"cfg": {BRACKETED_KEY: ["nest1", "nest2"]}},
+            0,
+            "bottomup",
+            None,
+            None,
+        ),
+        (
+            "Bracketed Literal Key Holding An Array, Deduped",
+            {"cfg": {BRACKETED_KEY: ["shared", "nest1-only", 0]}},
+            {"cfg": {BRACKETED_KEY: ["shared", "nest2-only", 0]}},
+            # positional dedup drops the entries matching nest1; the survivor is
+            # appended past the end of nest1's array -- an index shift that has to
+            # resolve the bracketed literal key as its prefix.
+            {"cfg": {BRACKETED_KEY: ["shared", "nest1-only", 0, "nest2-only"]}},
+            0,
+            "deduped",
+            None,
+            None,
+        ),
+        (
+            # a root-level array puts the governing index at path position 0, so the
+            # shift offset has no prefix to query -- nest1 is measured directly.
+            "Root Array, Top Down",
+            [1],
+            [2],
+            [1, 2],
+            0,
+            "topdown",
+            None,
+            None,
+        ),
+        (
+            "Root Array, Bottom Up",
+            [1],
+            [2],
+            [1, 2],
+            0,
+            "bottomup",
+            None,
+            None,
+        ),
+        (
+            "Root Array, Deduped Identical Nests",
+            [1],
+            [1],
+            [1],
+            0,
+            "deduped",
+            None,
+            None,
+        ),
+        (
+            # "topdown" extends the topmost array, so the root gains an entry...
+            "Root Array Of Objects, Top Down",
+            [{"a": [1]}],
+            [{"a": [2]}],
+            [{"a": [1]}, {"a": [2]}],
+            0,
+            "topdown",
+            None,
+            None,
+        ),
+        (
+            # ...while "bottomup" extends the innermost one.
+            "Root Array Of Objects, Bottom Up",
+            [{"a": [1]}],
+            [{"a": [2]}],
+            [{"a": [1, 2]}],
+            0,
+            "bottomup",
+            None,
+            None,
+        ),
+        (
+            # nest1 holding a non-array where nest2 holds an array leaves no
+            # entries to extend, so nest2 keeps its own indices and wins -- the
+            # same result "overwrite" produces. Measuring the non-array instead
+            # raised TypeError on a number and, for a str/dict, shifted by an
+            # unrelated length: 'xy' padded the output to [None, None, 2].
+            "Number Under Array Prefix, Top Down",
+            {"a": {"b": 1}},
+            {"a": {"b": [2]}},
+            {"a": {"b": [2]}},
+            0,
+            "topdown",
+            None,
+            None,
+        ),
+        (
+            "Number Under Array Prefix, Deduped",
+            {"a": {"b": 1}},
+            {"a": {"b": [2]}},
+            {"a": {"b": [2]}},
+            0,
+            "deduped",
+            None,
+            None,
+        ),
+        (
+            "String Under Array Prefix, Top Down",
+            {"a": {"b": "xy"}},
+            {"a": {"b": [2]}},
+            {"a": {"b": [2]}},
+            0,
+            "topdown",
+            None,
+            None,
+        ),
+        (
+            "String Under Array Prefix, Bottom Up",
+            {"a": {"b": "xy"}},
+            {"a": {"b": [2]}},
+            {"a": {"b": [2]}},
+            0,
+            "bottomup",
+            None,
+            None,
+        ),
+        (
             "Default Match Function - Non-dict/list handling",  # title
             {  # nest1
                 "key1": {"id": 1, "data": "value1"},
@@ -195,6 +392,18 @@ def test_merge(
     assert merged == expected
     assert nest1 == nest1_original
     assert nest2 == nest2_original
+
+
+@pytest.mark.parametrize(
+    argnames="array_merge", argvalues=["overwrite", "topdown", "bottomup", "deduped"]
+)
+def test_merge_container_type_conflict(array_merge):
+    """Merging nests that disagree object-vs-array at a path is ambiguous, not a TypeError.
+
+    Sort order cannot express nest2 priority here -- the conflicting entries are
+    different keys, not the same key -- so there is no principled winner."""
+    with pytest.raises(ValueError, match="Ambiguous Entry Detected"):
+        jf.merge({"a": {"b": {"k": 1}}}, {"a": {"b": [2]}}, array_merge=array_merge)
 
 
 def test_merge_fail():

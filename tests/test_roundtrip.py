@@ -1,5 +1,7 @@
 """Test a flatten/unflatten round trip"""
 
+from copy import deepcopy
+
 import pytest
 
 import jmesflat as jf
@@ -71,3 +73,34 @@ def test_roundtrip():
     assert jf.unflatten(flat, level=1) == TEST_NEST
     with pytest.raises(ValueError, match="`level` parameter"):
         jf.flatten([{"whoops": "outer list w/ level > 0!!"}], 1)
+
+
+# A top level key needing quotes has no parent path to descend from. `flatten`
+# escaped such a key only when its value was a container, so an atomic value
+# emitted a traversable path that collided with a genuine nested path, and
+# `unflatten` raised IndexError resolving the empty parent of a quoted key.
+QUOTED_TOP_LEVEL_CASES = [
+    ({"a.b": 1}, {'"a.b"': 1}),
+    ({"a.b": [1]}, {'"a.b"[0]': 1}),
+    ({"a.b": {"c": 1}}, {'"a.b".c': 1}),
+    ({"a.b": {}}, {'"a.b"': {}}),
+    ({"a.b": []}, {'"a.b"': []}),
+    ({"a-b": 1}, {'"a-b"': 1}),
+    ({"a b": 1}, {'"a b"': 1}),
+    ({"@type": 1}, {'"@type"': 1}),
+    ({"0": 1}, {'"0"': 1}),
+    ({"plain": 1, "a.b": [1, 2]}, {'"a.b"[0]': 1, '"a.b"[1]': 2, "plain": 1}),
+    # the collision: without the escape both of these flattened to "a.b"
+    ({"a.b": 1, "a": {"b": 2}}, {'"a.b"': 1, "a.b": 2}),
+    ([{"a.b": 1}], {'[0]."a.b"': 1}),
+]
+
+
+@pytest.mark.parametrize(argnames=("nested", "expected_flat"), argvalues=QUOTED_TOP_LEVEL_CASES)
+def test_quoted_top_level_key_roundtrip(nested, expected_flat):
+    """A top level key holding reserved chars survives a flatten/unflatten round trip."""
+    original = deepcopy(nested)
+    flat = jf.flatten(nested)
+    assert flat == expected_flat
+    assert jf.unflatten(flat) == original
+    assert nested == original

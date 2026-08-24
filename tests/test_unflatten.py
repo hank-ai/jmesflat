@@ -28,6 +28,42 @@ def test_unflatten_ambiguous_keys_error():
         jf.unflatten(ambiguous)
 
 
+@pytest.mark.parametrize(
+    argnames=("flattened", "expected_path"),
+    argvalues=[
+        ({"a[0]": 1, "a.k": 2}, "'a'"),
+        ({"a.k": 2, "a[0]": 1}, "'a'"),
+        ({"a.b[0]": 1, "a.b.k": 2}, "'a.b'"),
+        ({"a.b.c.d[0]": 1, "a.b.c.d.k": 2}, "'a.b.c.d'"),
+        ({'"x.y"[0]': 1, '"x.y".k': 2}, "'\"x.y\"'"),
+        ({"z": 0, "a.b.k": 2, "m.n": 3, "a.b[0]": 1}, "'a.b'"),
+    ],
+)
+def test_unflatten_ambiguous_keys_below_root(flattened, expected_path):
+    """A path indicating both object and array raises at any depth, not just the root.
+
+    Below the root this used to escape as an opaque TypeError from the internal
+    sort, comparing an array index against a sibling object key."""
+    with pytest.raises(ValueError, match="Ambiguous Entry Detected") as excinfo:
+        jf.unflatten(flattened)
+    assert expected_path in str(excinfo.value)
+
+
+@pytest.mark.parametrize(
+    argnames="flattened",
+    argvalues=[
+        {"a[0]": 1, "a[1]": 2},
+        {"a.k": 1, "a.j": 2},
+        {"a[0]": 1, "b.k": 2},
+        {"a[0].k": 1, "a[1].j": 2},
+        {},
+    ],
+)
+def test_unflatten_unambiguous_keys_pass(flattened):
+    """Keys agreeing on each container type are untouched by the ambiguity check."""
+    assert jf.flatten(jf.unflatten(dict(flattened))) == flattened
+
+
 def test_bad_path_element_query():
     """Verify exceptions are thrown for bad path 1st path element entries"""
     with pytest.raises(ValueError, match="Invalid array index"):
