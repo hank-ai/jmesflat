@@ -12,12 +12,12 @@ Key features:
 - Support for spaces and special characters in keys
 """
 
-__version__ = "0.2.1"
+__version__ = "0.3.0"
 
 from . import constants, utils
 from ._clean import clean
 from ._flatten import flatten
-from ._merge import merge, LevelMatchFunc
+from ._merge import LevelMatchFunc, merge
 from ._unflatten import unflatten
 
 __all__ = [
