@@ -71,8 +71,9 @@ def unflatten(
         all keys start with '['.
 
     Raises:
-        ValueError: When keys are ambiguous (some start with '[' and some don't) \
-        at level 0, indicating mixed object and array structure.
+        ValueError: When keys are ambiguous at level 0, i.e. two keys addressing \
+        the same path indicate both object and array -- at the root (some start \
+        with '[' and some don't) or at any depth below it.
     """
 
     if level:
@@ -81,10 +82,27 @@ def unflatten(
             for k, v in flattened.items()
         }
 
-    if any(k.startswith("[") for k in flattened) and not all(k.startswith("[") for k in flattened):
-        raise ValueError(
-            "Ambiguous Entry Detected: Top level keys indicate both object and array."
-        )
+    # A path addresses either an object or an array, never both. `flatten` cannot
+    # emit a contradiction, but a hand built dict -- or `merge` unioning two nests
+    # that disagree at a path -- can. Caught at the root since inception; below the
+    # root it used to surface as an opaque `TypeError` out of the `sorted` call
+    # below, comparing an array index against a sibling object key.
+    container_kinds: dict[tuple[str | int, ...], str] = {}
+    for flat_key in flattened:
+        elements = utils.raw_jpquery_path_elements(flat_key)
+        for depth, element in enumerate(elements):
+            kind = "array" if isinstance(element, int) else "object"
+            prefix = tuple(elements[:depth])
+            if container_kinds.setdefault(prefix, kind) == kind:
+                continue
+            located = (
+                "Top level keys"
+                if not prefix
+                else f"Keys below {utils.flat_key_from_path_elements(list(prefix))!r}"
+            )
+            raise ValueError(
+                f"Ambiguous Entry Detected: {located} indicate both object and array."
+            )
 
     discard_check = discard_check or constants.DISCARD_CHECK
 

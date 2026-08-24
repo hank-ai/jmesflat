@@ -394,6 +394,18 @@ def test_merge(
     assert nest2 == nest2_original
 
 
+@pytest.mark.parametrize(
+    argnames="array_merge", argvalues=["overwrite", "topdown", "bottomup", "deduped"]
+)
+def test_merge_container_type_conflict(array_merge):
+    """Merging nests that disagree object-vs-array at a path is ambiguous, not a TypeError.
+
+    Sort order cannot express nest2 priority here -- the conflicting entries are
+    different keys, not the same key -- so there is no principled winner."""
+    with pytest.raises(ValueError, match="Ambiguous Entry Detected"):
+        jf.merge({"a": {"b": {"k": 1}}}, {"a": {"b": [2]}}, array_merge=array_merge)
+
+
 def test_merge_fail():
     with pytest.raises(ValueError, match="`level` parameter"):
         jf.merge([0], [1], 1)
