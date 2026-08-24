@@ -84,7 +84,9 @@ def flatten(
     for key, val in (
         nested if isinstance(nested, dict) else dict(enumerate(nested))  # type:ignore[arg-type]
     ).items():
-        flat_key = f"[{key}]" if isinstance(key, int) else key
+        # escape via the same helper `_recurs_flatten` uses, so a top level key
+        # needing quotes (e.g. "a.b") is not emitted as a traversable path
+        flat_key = utils.flat_key_from_path_elements([key])
         empty_container = isinstance(val, (dict, list)) and not val
         if not isinstance(val, constants.ATOMIC_TYPES) and not empty_container:
             _recurs_flatten(nested, [key], out_dict)

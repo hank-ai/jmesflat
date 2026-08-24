@@ -90,6 +90,28 @@ def unflatten(
 
     final_element_pattern = re.compile(rf"(.*?){constants.PATH_ELEMENT_REGEX.pattern}$")
 
+    def _parent_object(parent_path: str, nest: dict[str, Any]) -> Any:
+        """
+        Return the object that `parent_path` addresses within `nest`.
+
+        An empty `parent_path` means the key being planted sits at the root. That
+        is the case for a top level key which needed quoting -- `'"a.b"'` matches
+        the final element pattern whole, leaving nothing to its left. `jmespath`
+        has no expression for "the whole document" (an empty element list raises
+        `IndexError`), so `nest` itself is the answer.
+
+        Args:
+            parent_path (str): flat key prefix addressing the parent container
+            nest (dict[str, Any]): the object under construction
+
+        Returns:
+            Any: the addressed object, or None where `parent_path` addresses \
+                nothing yet
+        """
+        if not parent_path:
+            return nest
+        return jp.search(utils.jpquery_from_flat_key(parent_path), nest)
+
     def _update_nest(path: str, value: Any, nest: dict[str, Any]):
         if callable(discard_check) and discard_check(path, value):
             # being paranoid. most are caught via equivalent check in _update_nest
@@ -108,7 +130,7 @@ def unflatten(
             return
         if parent_path.endswith("]"):
             pkey, _, pidx = parent_path[:-1].rpartition("[")
-            if not isinstance(_list := jp.search(utils.jpquery_from_flat_key(pkey), nest), list):
+            if not isinstance(_list := _parent_object(pkey, nest), list):
                 _update_nest(pkey, _list := [], nest)
             if child_key and len(_list) > int(pidx):
                 _list[int(pidx)][child_key.strip('"')] = value
@@ -120,11 +142,9 @@ def unflatten(
                 _list.append(_missing)
             _list.append({child_key.strip('"'): value} if child_key else value)
             return
-        elif child_key and not isinstance(
-            jp.search(utils.jpquery_from_flat_key(parent_path), nest), dict
-        ):
+        elif child_key and not isinstance(_parent_object(parent_path, nest), dict):
             _update_nest(parent_path, {}, nest)
-        jp.search(utils.jpquery_from_flat_key(parent_path), nest)[child_key.strip('"')] = value
+        _parent_object(parent_path, nest)[child_key.strip('"')] = value
 
     out_dict: dict[str, Any] = {}
     pop_top: bool = False
