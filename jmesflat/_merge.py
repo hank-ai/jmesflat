@@ -177,7 +177,9 @@ def merge(
     if array_merge == "deduped":
         flat2 = {k: v for k, v in flat2.items() if v != flat1.get(k, not v)}
 
-    def _array_split(flat_key: str) -> tuple[list[str | int], int, list[str | int]] | None:
+    def _array_split(
+        flat_key: str,
+    ) -> tuple[list[str | int], int, list[str | int]] | None:
         """
         Split `flat_key` around the array index that governs the merge: the first
         index for "topdown", the last for "bottomup"/"deduped".
@@ -212,14 +214,15 @@ def merge(
     flat2 = {
         (
             utils.flat_key_from_path_elements(
-                [*_split[0], prefix_replacements[tuple(_split[0])] + _split[1], *_split[2]]
+                [
+                    *_split[0],
+                    prefix_replacements[tuple(_split[0])] + _split[1],
+                    *_split[2],
+                ]
             )
-            if _split
+            if (_split := array_splits[k])
             else k
         ): v
         for k, v in flat2.items()
-        # a nest2 key holding no array reference has no index to shift. "topdown"
-        # has always dropped those keys; the other modes carry them through as-is.
-        if (_split := array_splits[k]) or split_from_end
     }
     return unflatten(flat1 | flat2, preserve_array_indices=array_merge == "topdown")

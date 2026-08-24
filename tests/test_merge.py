@@ -63,7 +63,7 @@ BRACKETED_NEST2 = {"hre": {"roleOverrides": {BRACKETED_KEY: "CHARGE_ENTRY"}, "or
                         {"c": "nest1->a->b->0->>c", "d": ["nest1->a->b->0->d->>0"]},
                         {"c": "nest2->a->b->0->>c", "d": ["nest2->a->b->0->d->>0"]},
                     ],
-                    "e": "nest1->a->e",
+                    "e": "nest2->a->e",
                 }
             },
             0,
@@ -144,9 +144,7 @@ BRACKETED_NEST2 = {"hre": {"roleOverrides": {BRACKETED_KEY: "CHARGE_ENTRY"}, "or
             BRACKETED_NEST2,
             {
                 "hre": {
-                    # NOTE: "topdown" has always dropped nest2 keys holding no
-                    # array reference -- see "Basic Top Down Merge" and 'a.e'.
-                    "roleOverrides": {BRACKETED_KEY: "DATA_ENTRY"},
+                    "roleOverrides": {BRACKETED_KEY: "CHARGE_ENTRY"},
                     "order": ["first", "second"],
                 }
             },
@@ -183,9 +181,8 @@ BRACKETED_NEST2 = {"hre": {"roleOverrides": {BRACKETED_KEY: "CHARGE_ENTRY"}, "or
             None,
         ),
         (
-            # a *leaf* bracketed literal key surviving the dedup filter is the only
-            # shape that reaches the index split in "deduped" mode -- the shape that
-            # raised LexerError. Keep it: "deduped" is what spec merges use.
+            # a *leaf* bracketed literal key surviving the dedup filter is the shape
+            # that raised LexerError in "deduped" mode -- what spec merges use.
             "Bracketed Literal Key, Deduped Differing Nests",
             BRACKETED_NEST1,
             BRACKETED_NEST2,
