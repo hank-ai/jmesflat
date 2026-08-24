@@ -17,23 +17,4 @@ ignore = [
 "scripts/*" = ["E", "F", "I", "B", "PL"]
 
 [lint.isort]
-known-first-party = [
-    "utilities",
-    "dbops",
-    "integrators",
-    "matchops",
-    "schemaops",
-    "specs",
-    "notify",
-    "rollup_cascade",
-    "gvars",
-    "aws_extractor",
-    "aws_s3_batch",
-    "section_extractor",
-    "table_extractor",
-    "table_transformer",
-    "pdf_extractor",
-    "schema_manager",
-    "llm_testing",
-    "create_facilities",
-]
+known-first-party = ["jmesflat"]
