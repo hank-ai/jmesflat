@@ -231,6 +231,60 @@ BRACKETED_NEST2 = {"hre": {"roleOverrides": {BRACKETED_KEY: "CHARGE_ENTRY"}, "or
             None,
         ),
         (
+            # a root-level array puts the governing index at path position 0, so the
+            # shift offset has no prefix to query -- nest1 is measured directly.
+            "Root Array, Top Down",
+            [1],
+            [2],
+            [1, 2],
+            0,
+            "topdown",
+            None,
+            None,
+        ),
+        (
+            "Root Array, Bottom Up",
+            [1],
+            [2],
+            [1, 2],
+            0,
+            "bottomup",
+            None,
+            None,
+        ),
+        (
+            "Root Array, Deduped Identical Nests",
+            [1],
+            [1],
+            [1],
+            0,
+            "deduped",
+            None,
+            None,
+        ),
+        (
+            # "topdown" extends the topmost array, so the root gains an entry...
+            "Root Array Of Objects, Top Down",
+            [{"a": [1]}],
+            [{"a": [2]}],
+            [{"a": [1]}, {"a": [2]}],
+            0,
+            "topdown",
+            None,
+            None,
+        ),
+        (
+            # ...while "bottomup" extends the innermost one.
+            "Root Array Of Objects, Bottom Up",
+            [{"a": [1]}],
+            [{"a": [2]}],
+            [{"a": [1, 2]}],
+            0,
+            "bottomup",
+            None,
+            None,
+        ),
+        (
             "Default Match Function - Non-dict/list handling",  # title
             {  # nest1
                 "key1": {"id": 1, "data": "value1"},

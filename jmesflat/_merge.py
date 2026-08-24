@@ -206,9 +206,28 @@ def merge(
         split_at = positions[-1] if split_from_end else positions[0]
         return elements[:split_at], int(elements[split_at]), elements[split_at + 1 :]
 
+    def _prefix_length(prefix: list[str | int]) -> int:
+        """
+        Return the length of the `nest1` array that `prefix` addresses, which is
+        the offset each `nest2` index below it shifts by.
+
+        An empty `prefix` means the governing index sits at the root, i.e. both
+        nests are arrays. There is no query for "the whole document" -- an empty
+        element list raises `IndexError` -- so `nest1` is measured directly.
+
+        Args:
+            prefix (list[str | int]): path elements addressing an array in `nest1`
+
+        Returns:
+            int: entry count, or 0 where `prefix` addresses nothing array-like
+        """
+        if not prefix:
+            return len(nest1) if isinstance(nest1, list) else 0
+        return len(jp.search(utils.escaped_query_from_path_elements(prefix), nest1) or "")
+
     array_splits = {k: _array_split(k) for k in flat2}
     prefix_replacements = {
-        tuple(prefix): len(jp.search(utils.escaped_query_from_path_elements(prefix), nest1) or "")
+        tuple(prefix): _prefix_length(prefix)
         for prefix, _, _ in filter(None, array_splits.values())
     }
     flat2 = {
